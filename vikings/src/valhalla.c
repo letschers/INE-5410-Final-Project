@@ -13,24 +13,27 @@ void valhalla_init(valhalla_t *self)
     for (int i = 0; i < NUMBER_OF_GODS; i++)
         self->prayers[i] = 0;
 
-    /* TODO: Adicionar código aqui se necessário! */
+    /* Protege o incremento concorrente do contador de preces. */
+    pthread_mutex_init(&self->mutex, NULL);
 
     plog("[valhalla] Initialized\n");
 }
 
 void valhalla_finalize(valhalla_t *self)
 {
-    /* TODO: Adicionar código aqui se necessário! */
-    
+    pthread_mutex_destroy(&self->mutex);
+
     plog("[valhalla] Finalized\n");
 }
 
 void valhalla_pray(valhalla_t *self, god_t god)
 {
-    /* TODO: Adicionar código se necessário! */
-
-    /* Atualiza o número de preces do deus god. */
+    /* Atualiza o número de preces do deus god de forma atômica. O lock é mantido
+       apenas durante o incremento, e não durante a prece (msleep), para não
+       serializar as preces dos vikings. */
+    pthread_mutex_lock(&self->mutex);
     self->prayers[god]++;
+    pthread_mutex_unlock(&self->mutex);
 
     /* Realiza a prece por um tempo determinado (NÃO ALTERE!). */
     msleep(rand() % config.max_pray_time);

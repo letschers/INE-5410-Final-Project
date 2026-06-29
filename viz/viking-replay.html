@@ -1,0 +1,417 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+<meta charset="utf-8">
+<title>Banquete Viking — Replay</title>
+<style>
+  :root{
+    --bg:#14110d; --panel:#1f1a13; --line:#3a2f20; --txt:#e8dcc6;
+    --normal:#4a90d9; --berserker:#d9534f; --plate:#e6a23c; --empty:#4d4234;
+    --accent:#c8a24b; --good:#5cb85c; --bad:#d9534f; --super:#9b8cff;
+  }
+  *{box-sizing:border-box}
+  html,body{height:100%;margin:0}
+  body{background:var(--bg);color:var(--txt);overflow:hidden;
+       font-family:"Segoe UI",system-ui,sans-serif;display:flex;flex-direction:column}
+  header{flex:0 0 auto;padding:8px 16px;border-bottom:2px solid var(--line);
+         display:flex;align-items:baseline;gap:12px;flex-wrap:wrap}
+  header h1{font-size:17px;margin:0;color:var(--accent);letter-spacing:.5px;white-space:nowrap}
+  header .sub{font-size:12px;opacity:.7}
+
+  .wrap{flex:1 1 auto;min-height:0;display:grid;
+        grid-template-columns:minmax(0,1fr) 372px;grid-template-rows:minmax(0,1fr);
+        gap:12px;padding:12px}
+
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:10px}
+  .tablecard{min-height:0;min-width:0;display:flex;align-items:center;
+             justify-content:center;padding:8px;position:relative}
+  .tablecard svg{width:100%;height:100%}
+  .tablelegend{position:absolute;left:12px;bottom:8px;display:flex;gap:14px;
+               font-size:11px;flex-wrap:wrap;opacity:.92}
+  .tablelegend span{display:flex;align-items:center;gap:5px}
+  .dot{width:11px;height:11px;border-radius:50%;display:inline-block}
+
+  /* coluna lateral: ocupa a altura toda, rola por dentro se faltar espaço */
+  .side{min-height:0;display:flex;flex-direction:column;gap:10px;overflow:hidden}
+  .side .card{padding:10px 12px}
+  .phase{font-size:14px;font-weight:700;letter-spacing:.4px}
+  .phase.banquet{color:var(--plate)} .phase.prayers{color:var(--super)}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:4px 14px;margin-top:6px;font-size:12px}
+  .grid2 .k{opacity:.75} .grid2 b{color:#fff}
+
+  .qhead{display:flex;justify-content:space-between;align-items:baseline;font-size:12px}
+  .qhead .qn{color:#fff;font-weight:700;font-variant:tabular-nums}
+  .qchips{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px;max-height:54px;overflow:hidden}
+  .chip{font-size:10px;line-height:1;padding:3px 5px;border-radius:4px;
+        font-variant:tabular-nums;background:#0e0c09;border:1px solid var(--line)}
+  .chip.nm{color:#cfe2f6;border-color:#2b4a66}
+  .chip.bk{color:#f6cfcf;border-color:#6b2f2f}
+  .chip.more{opacity:.7;border-style:dashed}
+
+  .bars{margin-top:4px}
+  .god{display:flex;align-items:center;gap:7px;margin:2px 0;font-size:11px}
+  .god .name{width:42px;font-variant:tabular-nums}
+  .god .track{flex:1;height:14px;background:#0e0c09;border-radius:4px;overflow:hidden;border:1px solid var(--line)}
+  .god .fill{height:100%;width:0;background:var(--normal);transition:width .12s linear}
+  .god.super .fill{background:var(--super)}
+  .god .fill.bad{background:var(--bad)}
+  .god .num{width:30px;text-align:right;font-variant:tabular-nums}
+  .pairline{height:1px;background:var(--line);margin:5px 0}
+
+  /* feed de decisões do chieftain — cresce e rola por dentro */
+  .feedcard{flex:1 1 auto;min-height:80px;display:flex;flex-direction:column;padding:10px 12px}
+  .feedcard h3{margin:0 0 6px;font-size:13px;color:var(--accent)}
+  #feed{flex:1;overflow-y:auto;font-size:12px;line-height:1.45;padding-right:4px}
+  .dec{padding:4px 8px;margin:3px 0;border-radius:6px;border-left:3px solid var(--line);
+       background:#181309;animation:pop .25s ease}
+  .dec.seat{border-left-color:var(--plate)}
+  .dec.god{border-left-color:var(--super)}
+  .dec .nm{color:var(--normal)} .dec .bk{color:var(--berserker)}
+  .dec .sg{color:var(--super)} .dec .why{opacity:.72}
+  @keyframes pop{from{opacity:0;transform:translateY(4px)}to{opacity:1}}
+
+  .controls{flex:0 0 auto;display:flex;align-items:center;gap:12px;
+            background:var(--panel);border-top:2px solid var(--line);
+            padding:9px 16px;flex-wrap:wrap}
+  button{background:var(--accent);color:#241c0a;border:none;border-radius:6px;
+         padding:6px 13px;font-weight:700;cursor:pointer;font-size:13px}
+  button:hover{filter:brightness(1.1)}
+  input[type=range]{accent-color:var(--accent)}
+  .clock{font-variant:tabular-nums;font-size:13px;opacity:.85;min-width:120px}
+  #scrub{flex:1;min-width:140px}
+  .tag{font-size:11px;padding:2px 7px;border-radius:10px;background:#2b2419;border:1px solid var(--line)}
+  .chair{stroke:#0c0a07;stroke-width:2}
+  .chair.empty{fill:var(--empty)}
+  .chair.normal{fill:var(--normal)}
+  .chair.berserker{fill:var(--berserker)}
+  .chair.eating{stroke:var(--plate);stroke-width:4}
+  .clabel{fill:#fff;font-weight:600;text-anchor:middle;dominant-baseline:central;pointer-events:none}
+  .plate{fill:#2b2419;stroke:#5a4b34;stroke-width:1.5}
+  .plate.used{fill:var(--plate);stroke:#8a6a23}
+  .gap-label{fill:var(--accent);text-anchor:middle;opacity:.85}
+  .hold{stroke:var(--plate);stroke-width:1.6;opacity:.6}
+</style>
+</head>
+<body>
+<header>
+  <h1>⚔️ Banquete Viking</h1>
+  <span class="sub" id="cfg"></span>
+</header>
+
+<div class="wrap">
+  <div class="card tablecard">
+    <svg id="table" viewBox="0 0 600 600" preserveAspectRatio="xMidYMid meet"></svg>
+    <div class="tablelegend">
+      <span><i class="dot" style="background:var(--normal)"></i>Normal</span>
+      <span><i class="dot" style="background:var(--berserker)"></i>Berserker</span>
+      <span><i class="dot" style="background:var(--empty)"></i>Cadeira vazia</span>
+      <span><i class="dot" style="background:var(--plate)"></i>Prato em uso</span>
+    </div>
+  </div>
+
+  <div class="side">
+    <div class="card">
+      <div class="phase" id="phase">—</div>
+      <div class="grid2">
+        <span class="k">Comendo agora</span><b id="s-eating">0</b>
+        <span class="k">Aguardando lugar</span><b id="s-wait">0</b>
+        <span class="k">Já comeram</span><b id="s-done">0</b>
+        <span class="k">Rezando agora</span><b id="s-pray">0</b>
+        <span class="k">Preces feitas</span><b id="s-prayed">0</b>
+        <span class="k">Pratos em uso</span><b id="s-plates">0</b>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="qhead">
+        <span style="color:var(--accent);font-weight:700">⏳ Fila por cadeira</span>
+        <span class="qn" id="q-count">0</span>
+      </div>
+      <div class="qchips" id="q-chips"></div>
+      <div style="font-size:10px;opacity:.6;margin-top:4px">
+        vikings que já iniciaram mas ainda esperam um lugar (não é FIFO: o monitor
+        acorda quem couber primeiro).
+      </div>
+    </div>
+
+    <div class="card">
+      <div style="font-size:12px;color:var(--accent);font-weight:700;margin-bottom:2px">
+        Preces aos deuses</div>
+      <div class="bars" id="bars"></div>
+    </div>
+
+    <div class="card feedcard">
+      <h3>🧠 Decisões do chieftain</h3>
+      <div id="feed"></div>
+    </div>
+  </div>
+</div>
+
+<div class="controls">
+  <button id="play">▶ Play</button>
+  <button id="prev" title="Evento anterior">⏮ Passo</button>
+  <button id="next" title="Próximo evento">Passo ⏭</button>
+  <button id="restart">⟲ Reiniciar</button>
+  <span class="clock" id="clock">0.0s / 0.0s</span>
+  <input type="range" id="scrub" min="0" max="1000" value="0">
+  <span class="tag">Velocidade</span>
+  <input type="range" id="speed" min="0.25" max="8" step="0.25" value="1.5" style="width:110px">
+  <span class="tag" id="speedval">1.5×</span>
+</div>
+
+<script>
+const RUN = {"meta": {"horde_size": 24, "table_size": 12, "max_eat": 500, "max_pray": 500, "total_vikings": 34, "late_vikings": 10, "duration": 1649.0, "gods": ["BALDR", "LOKI", "VALI", "HODER", "FRIGG", "JORD", "ODIN", "THOR"], "final_counts": [4, 4, 5, 6, 3, 3, 2, 7]}, "vikings": [{"berserker": 0, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 1, "type": 0}, {"berserker": 0, "type": 0}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}, {"berserker": 0, "type": 1}], "events": [{"t": 0.0, "kind": "run", "v": 0, "chair": null, "god": null}, {"t": 0.0, "kind": "run", "v": 1, "chair": null, "god": null}, {"t": 0.0, "kind": "eat_start", "v": 0, "chair": 0, "god": null, "plates": [0, 11], "cands": [0, 11, 1]}, {"t": 0.0, "kind": "eat_start", "v": 1, "chair": 1, "god": null, "plates": [1, 2], "cands": [1, 0, 2]}, {"t": 0.1, "kind": "run", "v": 2, "chair": null, "god": null}, {"t": 0.1, "kind": "run", "v": 3, "chair": null, "god": null}, {"t": 0.1, "kind": "run", "v": 4, "chair": null, "god": null}, {"t": 0.1, "kind": "eat_start", "v": 2, "chair": 3, "god": null, "plates": [3, 4], "cands": [3, 2, 4]}, {"t": 0.1, "kind": "eat_start", "v": 3, "chair": 5, "god": null, "plates": [5, 6], "cands": [5, 4, 6]}, {"t": 0.1, "kind": "eat_start", "v": 4, "chair": 7, "god": null, "plates": [7, 8], "cands": [7, 6, 8]}, {"t": 0.2, "kind": "run", "v": 5, "chair": null, "god": null}, {"t": 0.2, "kind": "run", "v": 6, "chair": null, "god": null}, {"t": 0.2, "kind": "run", "v": 7, "chair": null, "god": null}, {"t": 0.2, "kind": "run", "v": 8, "chair": null, "god": null}, {"t": 0.2, "kind": "eat_start", "v": 5, "chair": 9, "god": null, "plates": [9, 10], "cands": [9, 8, 10]}, {"t": 0.3, "kind": "run", "v": 9, "chair": null, "god": null}, {"t": 0.3, "kind": "run", "v": 10, "chair": null, "god": null}, {"t": 0.4, "kind": "run", "v": 11, "chair": null, "god": null}, {"t": 0.4, "kind": "run", "v": 12, "chair": null, "god": null}, {"t": 0.4, "kind": "run", "v": 13, "chair": null, "god": null}, {"t": 0.5, "kind": "run", "v": 14, "chair": null, "god": null}, {"t": 0.5, "kind": "run", "v": 15, "chair": null, "god": null}, {"t": 0.5, "kind": "run", "v": 16, "chair": null, "god": null}, {"t": 0.6, "kind": "run", "v": 17, "chair": null, "god": null}, {"t": 0.6, "kind": "run", "v": 18, "chair": null, "god": null}, {"t": 0.7, "kind": "run", "v": 19, "chair": null, "god": null}, {"t": 0.7, "kind": "run", "v": 20, "chair": null, "god": null}, {"t": 0.8, "kind": "run", "v": 21, "chair": null, "god": null}, {"t": 0.8, "kind": "run", "v": 22, "chair": null, "god": null}, {"t": 0.9, "kind": "run", "v": 23, "chair": null, "god": null}, {"t": 18.3, "kind": "eat_end", "v": 0, "chair": 0, "god": null}, {"t": 18.3, "kind": "eat_start", "v": 23, "chair": 0, "god": null, "plates": [0, 11], "cands": [0, 11, 1]}, {"t": 52.3, "kind": "eat_end", "v": 3, "chair": 5, "god": null}, {"t": 52.4, "kind": "eat_start", "v": 21, "chair": 5, "god": null, "plates": [5, 6], "cands": [5, 4, 6]}, {"t": 101.0, "kind": "run", "v": 24, "chair": null, "god": null}, {"t": 101.0, "kind": "run", "v": 25, "chair": null, "god": null}, {"t": 101.1, "kind": "run", "v": 26, "chair": null, "god": null}, {"t": 101.1, "kind": "run", "v": 27, "chair": null, "god": null}, {"t": 101.2, "kind": "run", "v": 28, "chair": null, "god": null}, {"t": 101.2, "kind": "run", "v": 29, "chair": null, "god": null}, {"t": 101.2, "kind": "run", "v": 30, "chair": null, "god": null}, {"t": 101.2, "kind": "run", "v": 31, "chair": null, "god": null}, {"t": 101.3, "kind": "run", "v": 32, "chair": null, "god": null}, {"t": 101.3, "kind": "run", "v": 33, "chair": null, "god": null}, {"t": 190.5, "kind": "eat_end", "v": 23, "chair": 0, "god": null}, {"t": 190.5, "kind": "eat_start", "v": 19, "chair": 11, "god": null, "plates": [11, 0], "cands": [11, 10, 0]}, {"t": 232.6, "kind": "eat_end", "v": 19, "chair": 11, "god": null}, {"t": 232.7, "kind": "eat_start", "v": 18, "chair": 0, "god": null, "plates": [0, 11], "cands": [0, 11, 1]}, {"t": 295.6, "kind": "eat_end", "v": 21, "chair": 5, "god": null}, {"t": 295.6, "kind": "eat_start", "v": 15, "chair": 5, "god": null, "plates": [5, 6], "cands": [5, 4, 6]}, {"t": 303.8, "kind": "eat_end", "v": 18, "chair": 0, "god": null}, {"t": 303.8, "kind": "eat_start", "v": 12, "chair": 0, "god": null, "plates": [0, 11], "cands": [0, 11, 1]}, {"t": 309.3, "kind": "eat_end", "v": 2, "chair": 3, "god": null}, {"t": 309.3, "kind": "eat_start", "v": 10, "chair": 3, "god": null, "plates": [3, 4], "cands": [3, 2, 4]}, {"t": 349.0, "kind": "eat_end", "v": 12, "chair": 0, "god": null}, {"t": 349.0, "kind": "eat_start", "v": 13, "chair": 11, "god": null, "plates": [11, 0], "cands": [11, 10, 0]}, {"t": 354.3, "kind": "eat_end", "v": 4, "chair": 7, "god": null}, {"t": 354.3, "kind": "eat_start", "v": 6, "chair": 7, "god": null, "plates": [7, 8], "cands": [7, 6, 8]}, {"t": 444.2, "kind": "eat_end", "v": 1, "chair": 1, "god": null}, {"t": 444.3, "kind": "eat_start", "v": 7, "chair": 1, "god": null, "plates": [1, 2], "cands": [1, 0, 2]}, {"t": 450.3, "kind": "eat_end", "v": 5, "chair": 9, "god": null}, {"t": 450.3, "kind": "eat_start", "v": 20, "chair": 9, "god": null, "plates": [9, 10], "cands": [9, 8, 10]}, {"t": 569.4, "kind": "eat_end", "v": 20, "chair": 9, "god": null}, {"t": 569.4, "kind": "eat_start", "v": 22, "chair": 9, "god": null, "plates": [9, 10], "cands": [9, 8, 10]}, {"t": 649.7, "kind": "eat_end", "v": 15, "chair": 5, "god": null}, {"t": 649.7, "kind": "eat_start", "v": 17, "chair": 5, "god": null, "plates": [5, 6], "cands": [5, 4, 6]}, {"t": 668.5, "kind": "eat_end", "v": 22, "chair": 9, "god": null}, {"t": 668.6, "kind": "eat_start", "v": 14, "chair": 9, "god": null, "plates": [9, 10], "cands": [9, 8, 10]}, {"t": 688.4, "kind": "eat_end", "v": 7, "chair": 1, "god": null}, {"t": 688.4, "kind": "eat_start", "v": 9, "chair": 1, "god": null, "plates": [1, 2], "cands": [1, 0, 2]}, {"t": 689.4, "kind": "eat_end", "v": 10, "chair": 3, "god": null}, {"t": 689.4, "kind": "eat_start", "v": 8, "chair": 3, "god": null, "plates": [3, 4], "cands": [3, 2, 4]}, {"t": 695.8, "kind": "eat_end", "v": 17, "chair": 5, "god": null}, {"t": 695.8, "kind": "eat_start", "v": 16, "chair": 5, "god": null, "plates": [5, 6], "cands": [5, 4, 6]}, {"t": 762.1, "kind": "eat_end", "v": 13, "chair": 11, "god": null}, {"t": 762.1, "kind": "eat_start", "v": 11, "chair": 0, "god": null, "plates": [0, 11], "cands": [0, 11, 1]}, {"t": 804.4, "kind": "eat_end", "v": 6, "chair": 7, "god": null}, {"t": 838.5, "kind": "eat_end", "v": 8, "chair": 3, "god": null}, {"t": 1004.4, "kind": "eat_end", "v": 9, "chair": 1, "god": null}, {"t": 1008.1, "kind": "eat_end", "v": 11, "chair": 0, "god": null}, {"t": 1138.9, "kind": "eat_end", "v": 16, "chair": 5, "god": null}, {"t": 1149.9, "kind": "eat_end", "v": 14, "chair": 9, "god": null}, {"t": 1149.9, "kind": "pray_start", "v": 16, "chair": null, "god": 4}, {"t": 1149.9, "kind": "pray_start", "v": 14, "chair": null, "god": 3}, {"t": 1149.9, "kind": "pray_start", "v": 0, "chair": null, "god": 5}, {"t": 1149.9, "kind": "pray_start", "v": 11, "chair": null, "god": 2}, {"t": 1149.9, "kind": "pray_start", "v": 3, "chair": null, "god": 1}, {"t": 1149.9, "kind": "pray_start", "v": 24, "chair": null, "god": 0}, {"t": 1149.9, "kind": "pray_start", "v": 25, "chair": null, "god": 0}, {"t": 1149.9, "kind": "pray_start", "v": 26, "chair": null, "god": 3}, {"t": 1149.9, "kind": "pray_start", "v": 27, "chair": null, "god": 2}, {"t": 1149.9, "kind": "pray_start", "v": 28, "chair": null, "god": 1}, {"t": 1149.9, "kind": "pray_start", "v": 31, "chair": null, "god": 6}, {"t": 1149.9, "kind": "pray_start", "v": 30, "chair": null, "god": 6}, {"t": 1149.9, "kind": "pray_start", "v": 32, "chair": null, "god": 5}, {"t": 1149.9, "kind": "pray_start", "v": 23, "chair": null, "god": 2}, {"t": 1149.9, "kind": "pray_start", "v": 33, "chair": null, "god": 2}, {"t": 1150.0, "kind": "pray_start", "v": 29, "chair": null, "god": 0}, {"t": 1150.0, "kind": "pray_start", "v": 19, "chair": null, "god": 3}, {"t": 1150.0, "kind": "pray_start", "v": 2, "chair": null, "god": 7}, {"t": 1150.0, "kind": "pray_start", "v": 18, "chair": null, "god": 7}, {"t": 1150.0, "kind": "pray_start", "v": 21, "chair": null, "god": 4}, {"t": 1150.0, "kind": "pray_start", "v": 1, "chair": null, "god": 3}, {"t": 1150.0, "kind": "pray_start", "v": 12, "chair": null, "god": 3}, {"t": 1150.0, "kind": "pray_start", "v": 5, "chair": null, "god": 1}, {"t": 1150.0, "kind": "pray_start", "v": 20, "chair": null, "god": 2}, {"t": 1150.0, "kind": "pray_start", "v": 15, "chair": null, "god": 7}, {"t": 1150.0, "kind": "pray_start", "v": 4, "chair": null, "god": 7}, {"t": 1150.0, "kind": "pray_start", "v": 22, "chair": null, "god": 1}, {"t": 1150.0, "kind": "pray_start", "v": 7, "chair": null, "god": 7}, {"t": 1150.0, "kind": "pray_start", "v": 10, "chair": null, "god": 7}, {"t": 1150.0, "kind": "pray_start", "v": 17, "chair": null, "god": 5}, {"t": 1150.0, "kind": "pray_start", "v": 6, "chair": null, "god": 7}, {"t": 1150.0, "kind": "pray_start", "v": 8, "chair": null, "god": 3}, {"t": 1150.1, "kind": "pray_start", "v": 13, "chair": null, "god": 4}, {"t": 1150.1, "kind": "pray_start", "v": 9, "chair": null, "god": 0}, {"t": 1153.0, "kind": "pray_end", "v": 2, "chair": null, "god": 7}, {"t": 1153.9, "kind": "pray_end", "v": 3, "chair": null, "god": 1}, {"t": 1163.9, "kind": "pray_end", "v": 11, "chair": null, "god": 2}, {"t": 1164.9, "kind": "pray_end", "v": 25, "chair": null, "god": 0}, {"t": 1195.9, "kind": "pray_end", "v": 28, "chair": null, "god": 1}, {"t": 1213.0, "kind": "pray_end", "v": 31, "chair": null, "god": 6}, {"t": 1220.0, "kind": "pray_end", "v": 26, "chair": null, "god": 3}, {"t": 1260.0, "kind": "pray_end", "v": 30, "chair": null, "god": 6}, {"t": 1273.1, "kind": "pray_end", "v": 10, "chair": null, "god": 7}, {"t": 1288.1, "kind": "pray_end", "v": 5, "chair": null, "god": 1}, {"t": 1291.1, "kind": "pray_end", "v": 20, "chair": null, "god": 2}, {"t": 1307.1, "kind": "pray_end", "v": 1, "chair": null, "god": 3}, {"t": 1314.9, "kind": "pray_end", "v": 24, "chair": null, "god": 0}, {"t": 1341.2, "kind": "pray_end", "v": 9, "chair": null, "god": 0}, {"t": 1454.2, "kind": "pray_end", "v": 13, "chair": null, "god": 4}, {"t": 1455.1, "kind": "pray_end", "v": 12, "chair": null, "god": 3}, {"t": 1467.1, "kind": "pray_end", "v": 15, "chair": null, "god": 7}, {"t": 1484.0, "kind": "pray_end", "v": 0, "chair": null, "god": 5}, {"t": 1485.1, "kind": "pray_end", "v": 4, "chair": null, "god": 7}, {"t": 1504.0, "kind": "pray_end", "v": 21, "chair": null, "god": 4}, {"t": 1514.1, "kind": "pray_end", "v": 8, "chair": null, "god": 3}, {"t": 1538.1, "kind": "pray_end", "v": 19, "chair": null, "god": 3}, {"t": 1541.0, "kind": "pray_end", "v": 29, "chair": null, "god": 0}, {"t": 1575.0, "kind": "pray_end", "v": 33, "chair": null, "god": 2}, {"t": 1581.1, "kind": "pray_end", "v": 22, "chair": null, "god": 1}, {"t": 1582.0, "kind": "pray_end", "v": 23, "chair": null, "god": 2}, {"t": 1588.9, "kind": "pray_end", "v": 14, "chair": null, "god": 3}, {"t": 1605.9, "kind": "pray_end", "v": 16, "chair": null, "god": 4}, {"t": 1606.1, "kind": "pray_end", "v": 17, "chair": null, "god": 5}, {"t": 1617.0, "kind": "pray_end", "v": 27, "chair": null, "god": 2}, {"t": 1631.1, "kind": "pray_end", "v": 6, "chair": null, "god": 7}, {"t": 1644.1, "kind": "pray_end", "v": 7, "chair": null, "god": 7}, {"t": 1648.0, "kind": "pray_end", "v": 18, "chair": null, "god": 7}, {"t": 1649.0, "kind": "pray_end", "v": 32, "chair": null, "god": 5}]};
+const N = RUN.meta.table_size;
+const EV = RUN.events;
+const GODS = RUN.meta.gods;
+const DUR = Math.max(1, RUN.meta.duration);
+const firstPray = (EV.find(e=>e.kind==="pray_start")||{t:DUR}).t;
+
+// Fila por cadeira: do "running" até o "eat_start", o viking normal espera lugar.
+// Indexamos por POSIÇÃO no array de eventos (não por tempo): o passo a passo
+// aplica exatamente um evento por clique, mesmo quando vários compartilham o
+// mesmo carimbo de tempo (ex.: a leva inicial que senta quase ao mesmo tempo).
+const runIdx={}, eatIdx={};
+for(let i=0;i<EV.length;i++){
+  const e=EV[i];
+  if(e.kind==="run"){ if(runIdx[e.v]===undefined) runIdx[e.v]=i; }
+  else if(e.kind==="eat_start"){ eatIdx[e.v]=i; }
+}
+const NORMALS=[];
+for(let id=0; id<RUN.vikings.length; id++) if(RUN.vikings[id].type===0) NORMALS.push(id);
+
+document.getElementById("cfg").textContent =
+  `${RUN.meta.total_vikings} vikings (${RUN.meta.total_vikings-RUN.meta.late_vikings} banquete + `
+  + `${RUN.meta.late_vikings} atrasados) · ${N} cadeiras · come≤${RUN.meta.max_eat}ms · reza≤${RUN.meta.max_pray}ms`;
+
+// ---- decisões pré-computadas (reconstruídas dos eventos + tabelas correntes) -
+const DECISIONS = (function(){
+  const out=[]; const counts=new Array(8).fill(0);
+  for(let i=0;i<EV.length;i++){
+    const e=EV[i];
+    if(e.kind==="eat_start"){
+      const t=RUN.vikings[e.v];
+      const role = t.berserker ? "<span class=bk>Berserker</span>" : "<span class=nm>Normal</span>";
+      const reach = (e.cands||[]).join(", ");
+      out.push({evi:i, cls:"seat",
+        html:`🪑 <b>Viking ${e.v}</b> ${role} → cadeira <b>${e.chair}</b>`
+            +`<div class="why">pegou pratos {${(e.plates||[]).join(", ")}} dos alcançáveis {${reach}};`
+            +` vizinhos respeitam a regra do berserker</div>`});
+    } else if(e.kind==="pray_start"){
+      const g=e.god, c=counts[g];
+      let html;
+      if(g<6){
+        const pr=g^1, cp=counts[pr];
+        const lo=Math.min(g,pr), hi=Math.max(g,pr);
+        const pair=`${GODS[lo]}/${GODS[hi]}`;
+        html=`🙏 <b>Viking ${e.v}</b> → <b>${GODS[g]}</b>`
+            +`<div class="why">par ${pair} estava ${counts[lo]}×${counts[hi]} → reforça o menor,`
+            +` mantém a diferença ≤ 5%</div>`;
+      } else {
+        const tn=counts.slice(0,6).reduce((a,b)=>a+b,0);
+        const cap=Math.ceil(tn*1.10);
+        html=`🙏 <b>Viking ${e.v}</b> → <b>${GODS[g]}</b> <span class=sg>super</span>`
+            +`<div class="why">${c+1}/${cap} preces — limite é 10% da soma dos 6 (=${tn})</div>`;
+      }
+      out.push({evi:i, cls:"god", html});
+      counts[g]++;
+    }
+  }
+  return out;
+})();
+
+// ---- geometria da mesa (gap/vão no topo) -----------------------------------
+const CX=300, CY=312, R_CHAIR=236, R_PLATE=162;
+const R_SEAT = Math.max(13, Math.min(30, 150/Math.max(6,N)*2.0));
+const R_PD   = Math.max(6, R_SEAT*0.42);
+const step = 2*Math.PI/(N+1);          // um slot vira o vão
+const ang = i => -Math.PI/2 + step*(i+1);
+const pos = (i,r)=>[CX + r*Math.cos(ang(i)), CY + r*Math.sin(ang(i))];
+
+const svg = document.getElementById("table");
+const NS = "http://www.w3.org/2000/svg";
+function el(tag, attrs){const e=document.createElementNS(NS,tag);
+  for(const k in attrs) e.setAttribute(k,attrs[k]); return e;}
+
+// churrasqueira central
+svg.appendChild(el("circle",{cx:CX,cy:CY,r:72,fill:"#2a1d10",stroke:"#5a4b34","stroke-width":2}));
+const fire=el("text",{x:CX,y:CY+2,"text-anchor":"middle","dominant-baseline":"central","font-size":"38"});
+fire.textContent="🔥"; svg.appendChild(fire);
+const flbl=el("text",{x:CX,y:CY+38,"text-anchor":"middle","font-size":"11",fill:"#8a7355"});
+flbl.textContent="churrasqueira"; svg.appendChild(flbl);
+
+// marcador do vão (entre cadeira N-1 e cadeira 0, no topo)
+const [gx,gy]=[CX, CY - R_CHAIR];
+svg.appendChild(el("line",{x1:CX,y1:CY-90,x2:gx,y2:gy-12,stroke:"var(--accent)",
+  "stroke-width":2,"stroke-dasharray":"4 4",opacity:.6}));
+const gl=el("text",{x:CX,y:gy-20,class:"gap-label","font-size":"11"});
+gl.textContent="vão (berserker-safe)"; svg.appendChild(gl);
+
+// pratos + cadeiras + ligações
+const holdLines=[], plateEls=[], chairEls=[], labelEls=[];
+for(let i=0;i<N;i++){
+  const ln=el("line",{class:"hold",visibility:"hidden"}); svg.appendChild(ln); holdLines.push(ln);
+}
+for(let i=0;i<N;i++){
+  const [px,py]=pos(i,R_PLATE);
+  const p=el("circle",{cx:px,cy:py,r:R_PD,class:"plate"}); svg.appendChild(p); plateEls.push(p);
+}
+for(let i=0;i<N;i++){
+  const [cx,cy]=pos(i,R_CHAIR);
+  const c=el("circle",{cx:cx,cy:cy,r:R_SEAT,class:"chair empty"}); svg.appendChild(c); chairEls.push(c);
+  const t=el("text",{x:cx,y:cy,class:"clabel","font-size":Math.round(R_SEAT*0.9)});
+  svg.appendChild(t); labelEls.push(t);
+}
+
+// ---- barras de preces ------------------------------------------------------
+const bars=document.getElementById("bars");
+const fillEls=[], numEls=[];
+const layout=[0,1,-1,2,3,-1,4,5,-2,6,-1,7];
+layout.forEach(g=>{
+  if(g<0){const d=document.createElement("div");d.className="pairline";bars.appendChild(d);return;}
+  const row=document.createElement("div"); row.className="god"+((g>=6)?" super":"");
+  const nm=document.createElement("span"); nm.className="name"; nm.textContent=GODS[g];
+  const tr=document.createElement("div"); tr.className="track";
+  const fl=document.createElement("div"); fl.className="fill"; tr.appendChild(fl);
+  const num=document.createElement("span"); num.className="num"; num.textContent="0";
+  row.append(nm,tr,num); bars.appendChild(row);
+  fillEls[g]=fl; numEls[g]=num;
+});
+
+// ---- estado após aplicar os primeiros K eventos ----------------------------
+function stateUpTo(K){
+  const chair=new Array(N).fill(null);
+  const plateUsed=new Array(N).fill(false);
+  const counts=new Array(8).fill(0);
+  let started=0, finished=0, prayingNow=0, prayed=0;
+  for(let i=0;i<K;i++){
+    const e=EV[i];
+    if(e.kind==="eat_start"){started++; chair[e.chair]={v:e.v,plates:e.plates||[]};
+      (e.plates||[]).forEach(p=>plateUsed[p]=true);}
+    else if(e.kind==="eat_end"){finished++; const c=chair[e.chair];
+      if(c){(c.plates||[]).forEach(p=>plateUsed[p]=false); chair[e.chair]=null;}}
+    else if(e.kind==="pray_start"){prayingNow++; counts[e.god]++;}
+    else if(e.kind==="pray_end"){prayingNow--; prayed++;}
+  }
+  return {chair,plateUsed,counts,started,finished,prayingNow,prayed};
+}
+const vikType=id=>RUN.vikings[id];
+const ceilTol=(x,r)=>Math.ceil(x*(1+r)), floorTol=(x,r)=>Math.floor(x*(1-r));
+// nº de eventos com t <= clock (deriva K a partir do tempo no play/scrub).
+const countLE=clk=>{ let n=0; while(n<EV.length && EV[n].t<=clk) n++; return n; };
+
+const feed=document.getElementById("feed");
+let lastFeedK=-1;
+function renderFeed(K){
+  let n=0; while(n<DECISIONS.length && DECISIONS[n].evi<K) n++;
+  if(n===lastFeedK) return;               // evita reflow desnecessário
+  lastFeedK=n;
+  const recent=DECISIONS.slice(Math.max(0,n-45),n);
+  feed.innerHTML=recent.map(d=>`<div class="dec ${d.cls}">${d.html}</div>`).join("");
+  feed.scrollTop=feed.scrollHeight;
+}
+
+const qCount=document.getElementById("q-count"), qChips=document.getElementById("q-chips");
+function renderQueue(K){
+  const waiting=[];
+  for(const id of NORMALS){
+    const ri=runIdx[id];             if(ri===undefined || ri>=K) continue; // ainda não iniciou
+    const ei=eatIdx[id];             if(ei!==undefined && ei<K) continue;  // já sentou
+    waiting.push(id);
+  }
+  qCount.textContent=waiting.length;
+  const CAP=48, shown=waiting.slice(0,CAP);
+  let html=shown.map(id=>`<span class="chip ${RUN.vikings[id].berserker?'bk':'nm'}">${id}</span>`).join("");
+  if(waiting.length>CAP) html+=`<span class="chip more">+${waiting.length-CAP}</span>`;
+  qChips.innerHTML=html;
+  return waiting.length;
+}
+
+function render(){
+  const st=stateUpTo(K);
+  for(let i=0;i<N;i++){
+    const occ=st.chair[i], c=chairEls[i], lab=labelEls[i];
+    if(occ){const t=vikType(occ.v);
+      c.setAttribute("class","chair "+(t.berserker?"berserker":"normal")+" eating");
+      lab.textContent=occ.v;
+    }else{c.setAttribute("class","chair empty"); lab.textContent="";}
+  }
+  for(let i=0;i<N;i++)
+    plateEls[i].setAttribute("class","plate"+(st.plateUsed[i]?" used":""));
+  let li=0;
+  for(let i=0;i<N;i++) holdLines[i].setAttribute("visibility","hidden");
+  for(let i=0;i<N;i++){
+    const occ=st.chair[i]; if(!occ) continue;
+    occ.plates.forEach(p=>{ if(li<holdLines.length){
+      const ln=holdLines[li++]; const [cx,cy]=pos(i,R_CHAIR), [px,py]=pos(p,R_PLATE);
+      ln.setAttribute("x1",cx);ln.setAttribute("y1",cy);
+      ln.setAttribute("x2",px);ln.setAttribute("y2",py);
+      ln.setAttribute("visibility","visible"); } });
+  }
+  const ph=document.getElementById("phase");
+  if(clock<firstPray){ph.textContent="🍖 BANQUETE — todos comem antes de rezar";ph.className="phase banquet";}
+  else{ph.textContent="🙏 PRECES — banquete encerrado";ph.className="phase prayers";}
+
+  document.getElementById("s-eating").textContent=st.started-st.finished;
+  document.getElementById("s-wait").textContent=renderQueue(K);
+  document.getElementById("s-done").textContent=st.finished;
+  document.getElementById("s-pray").textContent=st.prayingNow;
+  document.getElementById("s-prayed").textContent=st.prayed;
+  document.getElementById("s-plates").textContent=st.plateUsed.filter(Boolean).length;
+
+  const maxc=Math.max(1,...st.counts);
+  const totalNormal=st.counts.slice(0,6).reduce((a,b)=>a+b,0);
+  for(let g=0;g<8;g++){
+    if(!fillEls[g]) continue;
+    const c=st.counts[g];
+    fillEls[g].style.width=(100*c/maxc)+"%"; numEls[g].textContent=c;
+    let bad=false;
+    if(g<6){const rc=st.counts[g^1]; if(c>ceilTol(rc,0.05)||c<floorTol(rc,0.05)) bad=true;}
+    else{if(c>Math.ceil(totalNormal*1.10)) bad=true;}
+    fillEls[g].classList.toggle("bad",bad);
+  }
+  renderFeed(K);
+  document.getElementById("clock").textContent=(clock/1000).toFixed(1)+"s / "+(DUR/1000).toFixed(1)+"s";
+  scrub.value=Math.round(1000*clock/DUR);
+}
+
+// ---- loop de animação ------------------------------------------------------
+// clock = tempo contínuo (play/scrub); K = nº de eventos aplicados, master da
+// renderização. No play/scrub, K é derivado do tempo; no passo a passo, K
+// avança/recua de 1 em 1 e o tempo acompanha o evento.
+let clock=0, K=0, playing=false, speed=1.5, last=null;
+const scrub=document.getElementById("scrub");
+const playBtn=document.getElementById("play");
+const speedSlider=document.getElementById("speed");
+function pause(){playing=false;playBtn.textContent="▶ Play";}
+function frame(ts){
+  if(last==null) last=ts;
+  const dt=ts-last; last=ts;
+  if(playing){
+    clock+=dt*speed;
+    if(clock>=DUR){clock=DUR;pause();}
+    K=countLE(clock); render();
+  }
+  requestAnimationFrame(frame);
+}
+playBtn.onclick=()=>{
+  if(K>=EV.length){clock=0;K=0;}                 // recomeça se já terminou
+  playing=!playing; playBtn.textContent=playing?"⏸ Pausar":"▶ Play";
+};
+document.getElementById("restart").onclick=()=>{clock=0;K=0;pause();render();};
+scrub.oninput=()=>{clock=DUR*scrub.value/1000;K=countLE(clock);pause();render();};
+speedSlider.oninput=()=>{speed=parseFloat(speedSlider.value);
+  document.getElementById("speedval").textContent=speed+"×";};
+// Passo a passo: aplica/retira EXATAMENTE um evento por clique.
+function stepBy(dir){
+  K=Math.max(0,Math.min(EV.length,K+dir));
+  clock = K>0 ? EV[K-1].t : 0;
+  pause(); render();
+}
+document.getElementById("next").onclick=()=>stepBy(1);
+document.getElementById("prev").onclick=()=>stepBy(-1);
+
+render(); requestAnimationFrame(frame);
+</script>
+</body>
+</html>

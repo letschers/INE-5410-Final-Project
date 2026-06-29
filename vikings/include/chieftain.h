@@ -1,6 +1,7 @@
 #ifndef __CHIEFTAIN_H__
 #define __CHIEFTAIN_H__
 
+    #include <pthread.h>
     #include "config.h"
     #include "valhalla.h"
 
@@ -16,10 +17,23 @@
     typedef struct chieftain
     {
         valhalla_t *valhalla;   /* Referência para valhalla.  */
-        
-        /* TODO: Adicione aqui os atributos que achar necessários para implementar o
-        comportamento do chieftain. Esses atributos deverão ser usados pelas funções
-        do chieftain. */
+
+        /* ----- Monitor da mesa (cadeiras + pratos) ----- */
+        pthread_mutex_t table_mutex; /* Protege o estado da mesa.                 */
+        pthread_cond_t  table_cond;  /* Acorda vikings que esperam por lugar.     */
+        int *chair;        /* -1 = vazia; 0 = guerreiro normal; 1 = berserker.    */
+        int *plate;        /* 0 = prato livre; 1 = prato em uso.                  */
+        int *chair_plate0; /* 1o prato usado pelo ocupante da cadeira (ou -1).    */
+        int *chair_plate1; /* 2o prato usado pelo ocupante da cadeira (ou -1).    */
+
+        /* ----- Barreira do banquete (todos comem antes de rezar) ----- */
+        pthread_mutex_t banquet_mutex;   /* Protege finished_eating.              */
+        pthread_cond_t  banquet_cond;    /* Acorda quem espera o fim do banquete. */
+        unsigned int finished_eating;    /* Qtde. de vikings que já comeram.      */
+
+        /* ----- Atribuição de deuses ----- */
+        pthread_mutex_t god_mutex;             /* Protege os contadores abaixo.   */
+        unsigned int assigned[NUMBER_OF_GODS]; /* Preces já atribuídas por deus.  */
     } chieftain_t;
 
     /*============================================================================*
